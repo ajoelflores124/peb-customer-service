@@ -1,6 +1,7 @@
 package com.everis.customerservice.service;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,9 +15,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.everis.customerservice.entity.Customer;
 import com.everis.customerservice.exception.EntityNotFoundException;
+import com.everis.customerservice.redis.document.CustomerType;
+import com.everis.customerservice.redis.service.CustomerTypeService;
 import com.everis.customerservice.repository.ICustomerRepository;
 import com.everis.customerservice.topic.producer.CustomerServiceProducer;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -34,6 +39,12 @@ public class CustomerServiceImpl implements ICustomerService{
 	@Autowired
 	private ICustomerRepository customerRep;
 	private final ReactiveMongoTemplate mongoTemplate;
+	
+	@Autowired
+	private CustomerTypeService  customerTypeService;
+	
+	@Autowired
+	private ObjectMapper objectMapper;
 	
 	@Autowired
     public CustomerServiceImpl(ReactiveMongoTemplate mongoTemplate) {
@@ -56,9 +67,14 @@ public class CustomerServiceImpl implements ICustomerService{
 	}
 
 	@Override
-	public Mono<Customer> createEntity(Customer customer) {
+	public Mono<Customer> createEntity(Customer customer) throws Exception {
 	
-	   	
+	   //Obtenemos la descripcion del tipo de cliente desde REDIS
+	   Object obj=customerTypeService.get(customer.getTypeCustomer()).share().block();
+	   final ObjectMapper mapper = new ObjectMapper();
+	   final CustomerType pojo = mapper.convertValue((Map<String,CustomerType>)obj, CustomerType.class);
+	   //System.out.println( "customerType=>"+pojo.getTypeDes() );
+	   customer.setTypeCustomer( pojo==null?"P":pojo.getTypeDes());
 	   customerServiceProducer.sendSaveCustomerService(customer);
 	   return customerRep.insert(customer);
 	}

@@ -34,7 +34,7 @@ public class CustomerController {
 	}
 	
 	@PostMapping
-	public Mono<Customer> saveCustomer(@RequestBody Customer customerMono){
+	public Mono<Customer> saveCustomer(@RequestBody Customer customerMono) throws Exception{
 		return customerService.createEntity(customerMono);
 	}
 	

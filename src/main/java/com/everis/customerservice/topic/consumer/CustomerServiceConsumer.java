@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 public class CustomerServiceConsumer {
 
 	private final static String YANKI_TOPIC = "yankiservice-topic";
+	private final static String BOOTCOIN_TOPIC = "p2pservice-topic";
 	private final static String GROUP_ID = "customer-group";
 	
 	@Autowired
@@ -28,6 +29,17 @@ public class CustomerServiceConsumer {
 	@KafkaListener( topics = YANKI_TOPIC, groupId = GROUP_ID)
 	public Disposable retrieveSavedCustomer(String data) throws Exception {
 		log.info("data desde kafka listener (customer) =>"+data);
+		Customer customer= objectMapper.readValue(data, Customer.class );
+		 
+		return Mono.just(customer)
+		        .log()
+		        .flatMap(customerRep::save)
+		        .subscribe();
+	}
+	
+	@KafkaListener( topics = BOOTCOIN_TOPIC, groupId = GROUP_ID)
+	public Disposable retrieveSavedCustomerBootcoin(String data) throws Exception {
+		log.info("data desde kafka listener ( bootcoin customer) =>"+data);
 		Customer customer= objectMapper.readValue(data, Customer.class );
 		 
 		return Mono.just(customer)
